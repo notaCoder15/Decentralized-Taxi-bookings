@@ -10,6 +10,8 @@ contract taxi is globvars {
     event rideStarted(uint indexed _id , uint indexed time);
     event rideFinished(uint indexed _id , uint indexed time);
 
+    // function to request a ride . Takes input pickup point ,  destination and fare willing to pay
+
     function requestRide(string memory _from , string memory _to , uint _amount ) public notADriver(msg.sender) notACustomer(msg.sender) returns(uint _id){
         
         ride memory Ride;
@@ -26,6 +28,8 @@ contract taxi is globvars {
         emit rideRequested(_from, _to, _id);
     }
 
+    // function to cancel the ride if not yet accepted
+
     function cancelRide(uint _id) public {
         require(rides[_id].status == Status.Requested , "Ride is ongoing rightNow, cannot cancel");
         require(rides[_id].customer == msg.sender , "You are not the customer");
@@ -35,6 +39,7 @@ contract taxi is globvars {
         emit rideCancelled(_id);
     }
 
+    // function for drivers to accept the offer made by user
     
     function AcceptOffer(uint _id ) public notADriver(msg.sender) notACustomer(msg.sender) {
         require(rides[_id].status == Status.Requested , "ride not avaliable right now");
@@ -44,6 +49,8 @@ contract taxi is globvars {
         emit rideAccepted(_id , msg.sender);
     }
 
+    // function driver must call when ride is started
+
     function startRide(uint _id) public {
         require(rides[_id].status == Status.Accepted , "Ride is not in accepted state");
         require(rides[_id].driver == msg.sender ,"You are not the driver for this ride");
@@ -51,6 +58,9 @@ contract taxi is globvars {
         rides[_id].status = Status.Ongoing;
         emit rideStarted(_id, block.timestamp);
     }
+
+    // function customer calls when ride is finished 
+    // gives rating to driver
 
     function finishRideAsCustomer(uint _id , uint rating) public {
         require(rides[_id].customer == msg.sender ,"You are not the customer for this ride");
@@ -67,6 +77,8 @@ contract taxi is globvars {
         emit rideFinished(_id, block.timestamp);
     }
 
+    // function driver calls after customer calls the finidh ride function
+    // diver must give rating to the customer
     function finishRideAsDriver(uint _id , uint rating) public {
         require(rides[_id].driver == msg.sender ,"You are not the driver for this ride");
         require(rides[_id].status == Status.Completed , "Ride is not in completed state");
