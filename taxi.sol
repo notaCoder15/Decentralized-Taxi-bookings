@@ -6,6 +6,9 @@ import "./globvars.sol";
 contract taxi is globvars {
     event rideRequested(string _from , string _to , uint indexed _id);
     event rideCancelled(uint indexed _id);
+    event rideAccepted(uint indexed _id , address driver);
+    event rideStarted(uint indexed _id , uint indexed time);
+    event rideFinished(uint indexed _id , uint indexed time);
 
     function requestRide(string memory _from , string memory _to , uint _amount ) public notADriver(msg.sender) notACustomer(msg.sender) returns(uint _id){
         
@@ -38,6 +41,7 @@ contract taxi is globvars {
         rides[_id].status = Status.Accepted;
         rides[_id].driver = msg.sender;
         isDriverRightNow[msg.sender] = true;
+        emit rideAccepted(_id , msg.sender);
     }
 
     function startRide(uint _id) public {
@@ -45,20 +49,7 @@ contract taxi is globvars {
         require(rides[_id].driver == msg.sender ,"You are not the driver for this ride");
 
         rides[_id].status = Status.Ongoing;
-    }
-
-    function finishRideAsDriver(uint _id , uint rating) public {
-        require(rides[_id].driver == msg.sender ,"You are not the driver for this ride");
-        require(rides[_id].status == Status.Completed , "Ride is not in completed state");
-        require(rating <= 100 , "Rating range not correct");
-
-
-        isDriverRightNow[msg.sender] = false;
-        
-        userInfo[msg.sender].tripsCompletedAsDriver += 1;
-        userInfo[rides[_id].customer].ratingAsCustomer = ((userInfo[rides[_id].customer].ratingAsCustomer * (userInfo[rides[_id].customer].tripsCompletedAsCustomer - 1)) +
-                                                            rating ) / ((userInfo[rides[_id].customer].tripsCompletedAsCustomer)) ;
-
+        emit rideStarted(_id, block.timestamp);
     }
 
     function finishRideAsCustomer(uint _id , uint rating) public {
@@ -73,6 +64,20 @@ contract taxi is globvars {
         userInfo[rides[_id].driver].ratingAsDriver = ((userInfo[rides[_id].driver].ratingAsDriver * userInfo[rides[_id].driver].tripsCompletedAsDriver) +
                                                             rating ) / ((userInfo[rides[_id].driver].tripsCompletedAsDriver) + 1) ;
 
+        emit rideFinished(_id, block.timestamp);
+    }
+
+    function finishRideAsDriver(uint _id , uint rating) public {
+        require(rides[_id].driver == msg.sender ,"You are not the driver for this ride");
+        require(rides[_id].status == Status.Completed , "Ride is not in completed state");
+        require(rating <= 100 , "Rating range not correct");
+
+
+        isDriverRightNow[msg.sender] = false;
+        
+        userInfo[msg.sender].tripsCompletedAsDriver += 1;
+        userInfo[rides[_id].customer].ratingAsCustomer = ((userInfo[rides[_id].customer].ratingAsCustomer * (userInfo[rides[_id].customer].tripsCompletedAsCustomer - 1)) +
+                                                            rating ) / ((userInfo[rides[_id].customer].tripsCompletedAsCustomer)) ;
 
     }
 
